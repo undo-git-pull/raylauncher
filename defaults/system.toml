@@ -1,0 +1,79 @@
+# system.toml: system actions. The format is the same as commands.toml.
+#
+# Edit, disable (enabled = false), or delete any entry. Saving applies immediately.
+# Restart, shut down, and log out ask macOS to quit apps normally, so apps with
+# unsaved work can still cancel.
+
+[[command]]
+name = "Lock Screen"
+run = "pmset displaysleepnow"
+subtitle = "Turn off the display. The Mac locks if a password is required after sleep."
+icon = "sf:lock.fill"
+keywords = "lock away"
+
+[[command]]
+name = "Sleep"
+run = "pmset sleepnow"
+icon = "sf:moon.fill"
+keywords = "suspend"
+
+[[command]]
+name = "Restart"
+run = "osascript -e 'tell application \"System Events\" to restart'"
+icon = "sf:arrow.clockwise"
+keywords = "reboot"
+confirm = true
+
+[[command]]
+name = "Shut Down"
+run = "osascript -e 'tell application \"System Events\" to shut down'"
+icon = "sf:power"
+keywords = "power off shutdown"
+confirm = true
+
+[[command]]
+name = "Log Out"
+run = "osascript -e 'tell application \"System Events\" to log out'"
+icon = "sf:rectangle.portrait.and.arrow.right"
+keywords = "sign out logout"
+confirm = true
+
+[[command]]
+name = "Empty Trash"
+run = "osascript -e 'tell application \"Finder\" to empty trash'"
+icon = "sf:trash"
+keywords = "bin delete"
+confirm = true
+
+[[command]]
+name = "Toggle Dark Mode"
+run = "osascript -e 'tell application \"System Events\" to tell appearance preferences to set dark mode to not dark mode'"
+icon = "sf:circle.lefthalf.filled"
+keywords = "appearance theme light"
+
+[[command]]
+name = "Start Screen Saver"
+run = "open -a ScreenSaverEngine"
+icon = "sf:sparkles.tv"
+keywords = "screensaver"
+
+[[command]]
+name = "Raylauncher: Edit Config"
+run = "@edit-config"
+subtitle = "Open raylauncher.toml in the editor set in raylauncher.toml"
+icon = "sf:gearshape"
+keywords = "settings preferences configure"
+
+[[command]]
+name = "Raylauncher: Reindex Apps"
+run = "@reindex"
+subtitle = "Rescan app folders now"
+icon = "sf:arrow.triangle.2.circlepath"
+keywords = "refresh rescan"
+
+[[command]]
+name = "Raylauncher: Quit"
+run = "@quit"
+subtitle = "Stop raylauncher. The LaunchAgent restarts it at next login."
+icon = "sf:xmark.circle"
+keywords = "exit stop"

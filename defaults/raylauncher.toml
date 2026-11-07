@@ -1,0 +1,65 @@
+# raylauncher.toml: core settings for raylauncher.
+#
+# Saving this file applies the change immediately. There is no restart step.
+# If the file has an error, raylauncher keeps the last valid settings and shows
+# the error as the first result. Run `raylauncher check` to validate from a shell.
+# Every key is optional; a missing key falls back to the value shown here.
+# AGENTS.md in this folder documents every file and key.
+
+# Global shortcut that shows and hides raylauncher, written as "mod+mod+key".
+# Modifiers: cmd, alt (also "option"), ctrl, shift.
+# Keys: a-z, 0-9, space, return, tab, escape, f1-f12, minus, equal, comma, period,
+# slash, semicolon, quote, grave, backslash, leftbracket, rightbracket.
+# Cmd+Space belongs to Spotlight unless you turn that shortcut off in System Settings.
+hotkey = "alt+space"
+
+# Program and leading arguments used for `run` commands in commands.toml and
+# system.toml. The command text is appended as the final argument.
+# "-l" starts a login shell so your PATH from ~/.zprofile is available. Remove it
+# if every command uses absolute paths and you want commands to start faster.
+shell = ["/bin/zsh", "-lc"]
+
+# Command used to open a config file, for example from a config error result or
+# the "Raylauncher: Edit Config" action. The file path is appended as an argument.
+# Examples: "open -t" (default text editor), "open -a 'Visual Studio Code'", "zed".
+editor = "open -t"
+
+[window]
+width = 680             # points
+max_results = 8         # number of result rows (1-20)
+font_size = 22.0        # query text size; result rows scale from this
+top_offset = 0.22       # gap above the window, as a fraction of screen height (0-0.8)
+theme = "system"        # "system", "dark", or "light"
+show_icons = true       # app and command icons; false saves a little memory
+placeholder = "Search apps and commands, or type math"
+
+[search]
+# Folders scanned for .app bundles. "~" expands to your home folder. Folders that
+# don't exist are skipped. Changes inside these folders trigger a rescan the next
+# time raylauncher opens.
+app_dirs = [
+  "/Applications",
+  "/System/Applications",
+  "/System/Library/CoreServices/Applications",
+  "~/Applications",
+]
+scan_depth = 2          # how many folder levels below each app_dir to search
+exclude = []            # app names to hide, matched exactly, e.g. ["Chess", "Stickies"]
+
+# Matching uses nucleo, a Rust port of fzf's scoring algorithm, so fzf query syntax
+# works: 'exact  ^prefix  suffix$  !negate. Matching is case-insensitive unless the
+# query contains an uppercase letter.
+prefer_prefix = true    # rank matches at the start of a name higher
+
+# Launch history. Off by default: nothing is recorded and results depend only on the query.
+# When on, each launch is counted in history.tsv (see `raylauncher paths`), frequently
+# launched items get a bonus of history_weight * ln(1 + launches), and show_recent lists
+# the most-launched items when the query is empty. A one-character match scores about
+# 16, so 8.0 is a mild bonus.
+history = false
+history_weight = 8.0
+show_recent = true
+
+[calculator]
+enabled = true
+precision = 10          # maximum decimal places shown

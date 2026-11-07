@@ -1,0 +1,39 @@
+# commands.toml: your own commands. Each [[command]] block is one search result.
+#
+# Saving this file applies the change immediately. system.toml uses the same format.
+#
+# Keys:
+#   name      required  Text shown and fuzzy-matched.
+#   run       required  Shell command, run with `shell` from raylauncher.toml.
+#                       Values starting with "@" are built-in actions:
+#                       @edit-config, @reindex, @quit.
+#   keywords  optional  Extra words to match against, e.g. "dots dotfiles".
+#   subtitle  optional  Second line of the result. Defaults to the `run` text.
+#   icon      optional  "sf:<SF Symbol name>" (e.g. "sf:terminal"), or the path to a
+#                       file or app whose icon to show.
+#   confirm   optional  true requires pressing Enter twice. Use it for anything
+#                       destructive.
+#   enabled   optional  false hides the command without deleting it.
+
+[[command]]
+name = "Open Downloads"
+run = "open ~/Downloads"
+icon = "sf:arrow.down.circle"
+keywords = "folder files"
+
+# More examples. Remove the leading "# " to enable one.
+#
+# [[command]]
+# name = "Edit Dotfiles"
+# run = "code ~/dotfiles"
+# icon = "/Applications/Visual Studio Code.app"
+#
+# [[command]]
+# name = "Search GitHub"
+# run = "open https://github.com/search"
+# icon = "sf:magnifyingglass"
+#
+# [[command]]
+# name = "Flush DNS Cache"
+# run = "osascript -e 'do shell script \"dscacheutil -flushcache; killall -HUP mDNSResponder\" with administrator privileges'"
+# icon = "sf:network"
