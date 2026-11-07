@@ -20,7 +20,9 @@ Usage:
   raylauncher check        Validate the config files; exit 1 on error
   raylauncher query TEXT   Print the results raylauncher would show for TEXT
   raylauncher paths        Print config, state, and log locations
-  raylauncher install      Copy the binary to ~/.local/bin and start it at login (LaunchAgent)
+  raylauncher install      Start at login (LaunchAgent). Copies the binary to ~/.local/bin
+                           unless it was installed by Homebrew
+  raylauncher --version    Print the version
   raylauncher uninstall    Remove the LaunchAgent and stop raylauncher
 
 Config lives in ~/.config/raylauncher (override with RAYLAUNCHER_CONFIG_DIR).
@@ -37,6 +39,7 @@ fn main() {
         Some("install") => install(),
         Some("uninstall") => uninstall(),
         Some("-h" | "--help" | "help") => println!("{USAGE}"),
+        Some("-V" | "--version" | "version") => println!("raylauncher {}", env!("CARGO_PKG_VERSION")),
         Some(other) => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             exit(2);
@@ -104,18 +107,34 @@ fn launchctl(args: &[&str]) -> bool {
     Command::new("/bin/launchctl").args(args).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().is_ok_and(|s| s.success())
 }
 
+/// For a Homebrew install (`<prefix>/Cellar/raylauncher/<version>/bin/raylauncher`), the
+/// version-independent `<prefix>/opt/raylauncher/bin/raylauncher`, so `brew upgrade`
+/// updates the binary the LaunchAgent runs.
+fn homebrew_path(exe: &std::path::Path) -> Option<PathBuf> {
+    let s = exe.to_str()?;
+    let (prefix, _) = s.split_once("/Cellar/raylauncher/")?;
+    let opt = PathBuf::from(prefix).join("opt/raylauncher/bin/raylauncher");
+    opt.exists().then_some(opt)
+}
+
 fn install() {
-    let bin_dir = config::home().join(".local/bin");
-    let target = bin_dir.join("raylauncher");
     let current = std::env::current_exe().and_then(std::fs::canonicalize).expect("cannot locate own binary");
     let domain = format!("gui/{}", unsafe { getuid() });
     stop_agent(&domain);
-    if std::fs::canonicalize(&target).ok() != Some(current.clone()) {
-        std::fs::create_dir_all(&bin_dir).expect("create ~/.local/bin");
-        // Remove first: overwriting a running binary in place can invalidate its code signature.
-        let _ = std::fs::remove_file(&target);
-        std::fs::copy(&current, &target).expect("copy binary");
-    }
+    let target = match homebrew_path(&current) {
+        Some(p) => p,
+        None => {
+            let bin_dir = config::home().join(".local/bin");
+            let target = bin_dir.join("raylauncher");
+            if std::fs::canonicalize(&target).ok() != Some(current.clone()) {
+                std::fs::create_dir_all(&bin_dir).expect("create ~/.local/bin");
+                // Remove first: overwriting a running binary in place can invalidate its code signature.
+                let _ = std::fs::remove_file(&target);
+                std::fs::copy(&current, &target).expect("copy binary");
+            }
+            target
+        }
+    };
     let state = config::state_dir();
     std::fs::create_dir_all(&state).expect("create state dir");
     let log = state.join("raylauncher.log");
@@ -169,4 +188,20 @@ fn uninstall() {
     stop_agent(&domain);
     let _ = std::fs::remove_file(plist_path());
     println!("removed {LABEL}. Config in {} was left in place.", config::config_dir().display());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::homebrew_path;
+
+    #[test]
+    fn homebrew_opt_path() {
+        let prefix = std::env::temp_dir().join(format!("raylauncher-brew-{}", std::process::id()));
+        let opt = prefix.join("opt/raylauncher/bin/raylauncher");
+        std::fs::create_dir_all(opt.parent().unwrap()).unwrap();
+        std::fs::write(&opt, "").unwrap();
+        let cellar = prefix.join("Cellar/raylauncher/0.1.0/bin/raylauncher");
+        assert_eq!(homebrew_path(&cellar), Some(opt));
+        assert_eq!(homebrew_path(std::path::Path::new("/Users/x/.local/bin/raylauncher")), None);
+    }
 }

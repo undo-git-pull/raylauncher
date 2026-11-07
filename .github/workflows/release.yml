@@ -1,0 +1,64 @@
+# Builds a universal (Apple silicon + Intel) binary when a version tag is pushed and
+# publishes a GitHub Release. Uses no secrets beyond the built-in GITHUB_TOKEN.
+#
+# Release: set `version` in Cargo.toml, commit, then `git tag v<version> && git push --tags`.
+# The Homebrew tap is updated by hand afterwards with scripts/update-formula.sh.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  ASSET: raylauncher-macos-universal.tar.gz
+
+jobs:
+  release:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check tag matches Cargo.toml version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+
+      - name: Test
+        run: cargo test
+
+      - name: Build universal binary
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          mkdir -p dist
+          lipo -create -output dist/raylauncher \
+            target/aarch64-apple-darwin/release/raylauncher \
+            target/x86_64-apple-darwin/release/raylauncher
+          # Ad-hoc signature: Apple silicon refuses to run unsigned code.
+          codesign --force --sign - dist/raylauncher
+          lipo -info dist/raylauncher
+          dist/raylauncher --version
+          cp LICENSE README.md dist/
+          tar -C dist -czf "$ASSET" raylauncher LICENSE README.md
+          shasum -a 256 "$ASSET" > "$ASSET.sha256"
+          cat "$ASSET.sha256"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "$ASSET" "$ASSET.sha256" scripts/install.sh \
+            --title "$GITHUB_REF_NAME" --generate-notes

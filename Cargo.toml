@@ -2,6 +2,10 @@
 name = "raylauncher"
 version = "0.1.0"
 edition = "2024"
+description = "Keyboard launcher for macOS: apps, commands, system actions, and a calculator"
+license = "MIT"
+repository = "https://github.com/undo-git-pull/raylauncher"
+readme = "README.md"
 
 [dependencies]
 block2 = "0.6"

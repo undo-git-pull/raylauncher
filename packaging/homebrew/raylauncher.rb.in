@@ -1,0 +1,32 @@
+# Template for the Homebrew formula. scripts/update-formula.sh fills in @VERSION@, @SHA256@ and
+# @REPO@ and writes the result to Formula/raylauncher.rb in a homebrew-tap checkout.
+class Raylauncher < Formula
+  desc "Keyboard launcher for macOS: apps, commands, system actions, and a calculator"
+  homepage "https://github.com/@REPO@"
+  url "https://github.com/@REPO@/releases/download/v@VERSION@/raylauncher-macos-universal.tar.gz"
+  version "@VERSION@"
+  sha256 "@SHA256@"
+  license "MIT"
+
+  depends_on :macos
+
+  def install
+    bin.install "raylauncher"
+  end
+
+  def caveats
+    <<~EOS
+      Start raylauncher now and at every login:
+        raylauncher install
+
+      After `brew upgrade raylauncher`, run `raylauncher install` again to restart it.
+      Before `brew uninstall raylauncher`, run `raylauncher uninstall`.
+
+      Config lives in ~/.config/raylauncher. The default hotkey is Option+Space.
+    EOS
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/raylauncher --version")
+  end
+end
