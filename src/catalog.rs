@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Matcher, Utf32String};
 
-use crate::config::{Command, Config, expand_tilde};
+use crate::config::{Command, Config, Search, expand_tilde};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Icon {
@@ -50,25 +50,34 @@ impl Item {
     }
 }
 
-pub fn scan_apps(dirs: &[String], depth: usize, exclude: &[String]) -> Vec<Item> {
+/// Apps from `search.extra_apps` first, then every `.app` found in `search.app_dirs`.
+/// When two apps share a name, the earlier one wins.
+pub fn scan_apps(s: &Search) -> Vec<Item> {
     let mut out = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for d in dirs {
-        walk(&expand_tilde(d), depth, &mut |path: &Path| {
-            let Some(name) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) else { return };
-            if exclude.iter().any(|e| e == &name) || !seen.insert(name.clone()) {
-                return; // first app_dir wins on duplicate names
-            }
-            let parent = path.parent().map(|p| p.display().to_string()).unwrap_or_default();
-            out.push(Item::new(
-                path.display().to_string(),
-                name,
-                parent,
-                Icon::File(path.to_path_buf()),
-                Action::OpenApp(path.to_path_buf()),
-                "",
-            ));
-        });
+    let mut add = |path: &Path| {
+        let Some(name) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) else { return };
+        if s.exclude.iter().any(|e| e == &name) || !seen.insert(name.clone()) {
+            return;
+        }
+        let parent = path.parent().map(|p| p.display().to_string()).unwrap_or_default();
+        out.push(Item::new(
+            path.display().to_string(),
+            name,
+            parent,
+            Icon::File(path.to_path_buf()),
+            Action::OpenApp(path.to_path_buf()),
+            "",
+        ));
+    };
+    for a in &s.extra_apps {
+        let p = expand_tilde(a);
+        if p.exists() {
+            add(&p);
+        }
+    }
+    for d in &s.app_dirs {
+        walk(&expand_tilde(d), s.scan_depth, &mut add);
     }
     out
 }
@@ -177,8 +186,7 @@ impl Catalog {
 
     pub fn refresh_apps(&mut self, cfg: &Config) {
         if self.apps_dirty {
-            let s = &cfg.main.search;
-            self.apps = scan_apps(&s.app_dirs, s.scan_depth, &s.exclude);
+            self.apps = scan_apps(&cfg.main.search);
             self.apps_dirty = false;
         }
     }

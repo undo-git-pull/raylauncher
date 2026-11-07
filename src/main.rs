@@ -55,7 +55,7 @@ fn check() {
     }
     match config::load(&dir) {
         Ok(c) => {
-            let apps = catalog::scan_apps(&c.main.search.app_dirs, c.main.search.scan_depth, &c.main.search.exclude);
+            let apps = catalog::scan_apps(&c.main.search);
             println!(
                 "ok: {} (hotkey {}, {} apps, {} commands)",
                 dir.display(),

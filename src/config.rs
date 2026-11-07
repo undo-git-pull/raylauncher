@@ -44,6 +44,7 @@ pub struct Window {
 pub struct Search {
     pub app_dirs: Vec<String>,
     pub scan_depth: usize,
+    pub extra_apps: Vec<String>,
     pub exclude: Vec<String>,
     pub prefer_prefix: bool,
     pub history: bool,
@@ -255,6 +256,9 @@ fn validate_main(m: &Main) -> Result<(), String> {
     }
     if m.search.history_weight < 0.0 {
         return Err("search.history_weight must be >= 0".into());
+    }
+    if let Some(bad) = m.search.extra_apps.iter().find(|a| !a.trim_end_matches('/').ends_with(".app")) {
+        return Err(format!("search.extra_apps entries must be paths to .app bundles, got {bad:?}"));
     }
     if m.calculator.precision > 15 {
         return Err("calculator.precision must be 0-15".into());

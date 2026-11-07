@@ -44,6 +44,9 @@ app_dirs = [
   "~/Applications",
 ]
 scan_depth = 2          # how many folder levels below each app_dir to search
+# Individual apps to include from folders that aren't scanned, such as Finder, which
+# lives among about a hundred background helpers in /System/Library/CoreServices.
+extra_apps = ["/System/Library/CoreServices/Finder.app"]
 exclude = []            # app names to hide, matched exactly, e.g. ["Chess", "Stickies"]
 
 # Matching uses nucleo, a Rust port of fzf's scoring algorithm, so fzf query syntax
