@@ -60,6 +60,7 @@ where a float is expected.
 | `search.app_dirs` | string array | `/Applications`, `/System/Applications`, `/System/Library/CoreServices/Applications`, `~/Applications` | `~` expands. Missing folders are skipped. When two folders contain an app with the same name, the earlier folder wins. |
 | `search.scan_depth` | integer | `2` | Folder levels searched below each app dir |
 | `search.extra_apps` | string array | `["/System/Library/CoreServices/Finder.app"]` | Paths to individual `.app` bundles to include. Listed before apps from `app_dirs`, so they win name clashes. Missing paths are skipped. |
+| `search.boost` | table of name = number | `{ Finder = 20 }` | Added to the match score of the app or command with that exact name. About 16 per matched letter, so 20 wins ties; negative values demote. A user `[search.boost]` table replaces the default table. Range -1000 to 1000. Place it after the other `[search]` keys. |
 | `search.exclude` | string array | `[]` | App names to hide, exact match without `.app` |
 | `search.prefer_prefix` | bool | `true` | Rank matches at the start of a name higher |
 | `search.history` | bool | `false` | Record launches and use them for ranking. Off means nothing is written. |

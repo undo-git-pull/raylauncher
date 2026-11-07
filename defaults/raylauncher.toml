@@ -63,6 +63,13 @@ history = false
 history_weight = 8.0
 show_recent = true
 
+# Score added to an app or command, by its exact name, whenever it matches the query.
+# Each matched letter scores about 16, so 20 wins ties (Finder over FindMy and Firefox
+# on "f") without overriding clearly better matches. Negative values push a result down.
+# A [search.boost] table in your file replaces this whole default table.
+[search.boost]
+Finder = 20
+
 [calculator]
 enabled = true
 precision = 10          # maximum decimal places shown

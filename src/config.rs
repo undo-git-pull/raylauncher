@@ -45,6 +45,7 @@ pub struct Search {
     pub app_dirs: Vec<String>,
     pub scan_depth: usize,
     pub extra_apps: Vec<String>,
+    pub boost: std::collections::BTreeMap<String, f64>,
     pub exclude: Vec<String>,
     pub prefer_prefix: bool,
     pub history: bool,
@@ -212,6 +213,9 @@ fn read_optional(p: &Path) -> Result<String, String> {
 
 /// Merge `user` onto `base`. Every user key must exist in the defaults with a
 /// compatible type, so typos fail with the full key path and the list of valid keys.
+/// Tables whose keys are user-chosen names instead of fixed settings.
+const FREE_TABLES: &[&str] = &["search.boost"];
+
 fn merge(base: &mut Table, user: Table, prefix: &str) -> Result<(), String> {
     for (k, v) in user {
         let path = if prefix.is_empty() { k.clone() } else { format!("{prefix}.{k}") };
@@ -220,6 +224,21 @@ fn merge(base: &mut Table, user: Table, prefix: &str) -> Result<(), String> {
             return Err(format!("unknown key `{path}`. Valid keys here: {}", valid.join(", ")));
         };
         match (slot, v) {
+            // Free-form name -> number map: the user's table replaces the default one.
+            (slot @ Value::Table(_), Value::Table(u)) if FREE_TABLES.contains(&path.as_str()) => {
+                let mut t = Table::new();
+                for (name, n) in u {
+                    let n = match n {
+                        Value::Integer(i) => i as f64,
+                        Value::Float(f) => f,
+                        other => {
+                            return Err(format!("`{path}.{name}` should be a number, found {}", other.type_str()));
+                        }
+                    };
+                    t.insert(name, Value::Float(n));
+                }
+                *slot = Value::Table(t);
+            }
             (Value::Table(b), Value::Table(u)) => merge(b, u, &path)?,
             (slot @ Value::Float(_), Value::Integer(i)) => *slot = Value::Float(i as f64),
             (slot, v) if std::mem::discriminant(slot) == std::mem::discriminant(&v) => *slot = v,
@@ -256,6 +275,9 @@ fn validate_main(m: &Main) -> Result<(), String> {
     }
     if m.search.history_weight < 0.0 {
         return Err("search.history_weight must be >= 0".into());
+    }
+    if let Some((name, v)) = m.search.boost.iter().find(|(_, v)| !(-1000.0..=1000.0).contains(*v)) {
+        return Err(format!("search.boost.{name} must be between -1000 and 1000, got {v}"));
     }
     if let Some(bad) = m.search.extra_apps.iter().find(|a| !a.trim_end_matches('/').ends_with(".app")) {
         return Err(format!("search.extra_apps entries must be paths to .app bundles, got {bad:?}"));
@@ -315,6 +337,17 @@ mod tests {
         let d = dir_with("[window]\nwidht = 900\n");
         let e = load(&d).unwrap_err().message;
         assert!(e.contains("window.widht") && e.contains("width"), "{e}");
+    }
+
+    #[test]
+    fn boost_table_replaces_default() {
+        let d = dir_with("[search.boost]\nSafari = 10\n\"Visual Studio Code\" = -5.5\n");
+        let b = load(&d).unwrap().main.search.boost;
+        assert_eq!(b.get("Safari"), Some(&10.0));
+        assert_eq!(b.get("Visual Studio Code"), Some(&-5.5));
+        assert_eq!(b.get("Finder"), None);
+        let d = dir_with("[search.boost]\nSafari = \"high\"\n");
+        assert!(load(&d).unwrap_err().message.contains("search.boost.Safari"));
     }
 
     #[test]

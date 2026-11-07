@@ -162,6 +162,10 @@ impl History {
     }
 }
 
+fn caseless(s: &str) -> impl Iterator<Item = char> + '_ {
+    s.chars().flat_map(char::to_lowercase)
+}
+
 pub struct Catalog {
     pub apps: Vec<Item>,
     pub commands: Vec<Item>,
@@ -219,13 +223,15 @@ impl Catalog {
                 // Keyword hits count, at a discount, so the visible name wins ties.
                 let k = it.hay_keywords.as_ref().and_then(|k| pat.score(k.slice(..), matcher)).map(|v| v * 3 / 4);
                 if let Some(best) = t.max(k) {
-                    scored.push((best as f64 + boost(&it.id), it));
+                    let pinned = s.boost.get(&it.title).copied().unwrap_or(0.0);
+                    scored.push((best as f64 + pinned + boost(&it.id), it));
                 }
             }
         }
         scored.sort_by(|a, b| {
             b.0.total_cmp(&a.0)
-                .then(a.1.title.len().cmp(&b.1.title.len()))
+                .then(a.1.title.chars().count().cmp(&b.1.title.chars().count()))
+                .then_with(|| caseless(&a.1.title).cmp(caseless(&b.1.title)))
                 .then_with(|| a.1.title.cmp(&b.1.title))
         });
         scored.into_iter().take(limit).map(|(_, it)| it.clone()).collect()
@@ -260,6 +266,23 @@ mod tests {
         assert_eq!(c.search("reboot", &cfg, &h, 5)[0].title, "Restart");
         let r = c.search("s !slack", &cfg, &h, 10);
         assert!(r.iter().all(|i| i.title != "Slack"));
+    }
+
+    #[test]
+    fn ties_ignore_case_and_boost_wins() {
+        let mut cfg = cfg(false);
+        cfg.main.search.boost.clear();
+        let mut c = Catalog::new(&cfg);
+        c.apps = ["FindMy", "Finder", "Firefox"].map(app).to_vec();
+        c.commands.clear();
+        c.apps_dirty = false;
+        let h = History::default();
+        // equal score and length: "finder" < "findmy" ignoring case
+        assert_eq!(c.search("f", &cfg, &h, 5)[0].title, "Finder");
+        cfg.main.search.boost.insert("Firefox".into(), 20.0);
+        assert_eq!(c.search("f", &cfg, &h, 5)[0].title, "Firefox");
+        cfg.main.search.boost.insert("Firefox".into(), -20.0);
+        assert_eq!(c.search("f", &cfg, &h, 5).last().unwrap().title, "Firefox");
     }
 
     #[test]
