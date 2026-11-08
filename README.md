@@ -87,7 +87,7 @@ The first run creates these files in `~/.config/raylauncher`:
 |---|---|
 | `raylauncher.toml` | Hotkey, shell, editor, window size and theme, search, calculator |
 | `commands.toml` | Your own commands |
-| `system.toml` | Lock Screen, Sleep, Restart, Shut Down, Log Out, Empty Trash, Toggle Dark Mode, and raylauncher's own actions |
+| `system.toml` | Lock Screen, Sleep, Restart, Shut Down, Log Out, Empty Trash, Toggle Dark Mode, System Settings panes such as Mouse and Displays, and raylauncher's own actions |
 | `AGENTS.md` | Reference for every file and key, rewritten on each start |
 
 Every key in `raylauncher.toml` is optional. A missing key falls back to its default, and an

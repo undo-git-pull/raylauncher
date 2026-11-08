@@ -1,4 +1,4 @@
-# system.toml: system actions. The format is the same as commands.toml.
+# system.toml: system actions and System Settings panes. The format is the same as commands.toml.
 #
 # Edit, disable (enabled = false), or delete any entry. Saving applies immediately.
 # Restart, shut down, and log out ask macOS to quit apps normally, so apps with
@@ -56,6 +56,268 @@ name = "Start Screen Saver"
 run = "open -a ScreenSaverEngine"
 icon = "sf:sparkles.tv"
 keywords = "screensaver"
+
+# System Settings panes. Each opens one pane directly.
+# Find more IDs in /System/Library/ExtensionKit/Extensions/*.appex (CFBundleIdentifier).
+
+[[command]]
+name = "Accessibility"
+run = "open 'x-apple.systempreferences:com.apple.Accessibility-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences voiceover zoom a11y"
+
+[[command]]
+name = "AirDrop & Handoff"
+run = "open 'x-apple.systempreferences:com.apple.AirDrop-Handoff-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences airplay continuity"
+
+[[command]]
+name = "Apple Account"
+run = "open 'x-apple.systempreferences:com.apple.systempreferences.AppleIDSettings'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences icloud apple id"
+
+[[command]]
+name = "Appearance"
+run = "open 'x-apple.systempreferences:com.apple.Appearance-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences dark mode light theme accent"
+
+[[command]]
+name = "Battery"
+run = "open 'x-apple.systempreferences:com.apple.Battery-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences power energy saver"
+
+[[command]]
+name = "Bluetooth"
+run = "open 'x-apple.systempreferences:com.apple.BluetoothSettings'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences devices pair headphones"
+
+[[command]]
+name = "Control Center"
+run = "open 'x-apple.systempreferences:com.apple.ControlCenter-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences menu bar"
+
+[[command]]
+name = "Date & Time"
+run = "open 'x-apple.systempreferences:com.apple.Date-Time-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences clock timezone"
+
+[[command]]
+name = "Desktop & Dock"
+run = "open 'x-apple.systempreferences:com.apple.Desktop-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences dock mission control stage manager hot corners"
+
+[[command]]
+name = "Displays"
+run = "open 'x-apple.systempreferences:com.apple.Displays-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences monitor screen resolution brightness night shift"
+
+[[command]]
+name = "Focus"
+run = "open 'x-apple.systempreferences:com.apple.Focus-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences do not disturb dnd"
+
+[[command]]
+name = "Game Controllers"
+run = "open 'x-apple.systempreferences:com.apple.Game-Controller-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences gamepad joystick"
+
+[[command]]
+name = "Internet Accounts"
+run = "open 'x-apple.systempreferences:com.apple.Internet-Accounts-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences mail email google"
+
+[[command]]
+name = "Keyboard"
+run = "open 'x-apple.systempreferences:com.apple.Keyboard-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences shortcuts input key repeat dictation"
+
+[[command]]
+name = "Language & Region"
+run = "open 'x-apple.systempreferences:com.apple.Localization-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences locale format"
+
+[[command]]
+name = "Lock Screen Settings"
+run = "open 'x-apple.systempreferences:com.apple.Lock-Screen-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences screen saver password"
+
+[[command]]
+name = "Login Items & Extensions"
+run = "open 'x-apple.systempreferences:com.apple.LoginItems-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences startup background"
+
+[[command]]
+name = "Mouse"
+run = "open 'x-apple.systempreferences:com.apple.Mouse-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences pointer scroll tracking speed"
+
+[[command]]
+name = "Network"
+run = "open 'x-apple.systempreferences:com.apple.Network-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences ethernet firewall proxy dns"
+
+[[command]]
+name = "Notifications"
+run = "open 'x-apple.systempreferences:com.apple.Notifications-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences alerts banners"
+
+[[command]]
+name = "Printers & Scanners"
+run = "open 'x-apple.systempreferences:com.apple.Print-Scan-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences printer"
+
+[[command]]
+name = "Privacy & Security"
+run = "open 'x-apple.systempreferences:com.apple.settings.PrivacySecurity.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences permissions filevault accessibility full disk"
+
+[[command]]
+name = "Screen Time"
+run = "open 'x-apple.systempreferences:com.apple.Screen-Time-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences limits parental"
+
+[[command]]
+name = "Sharing"
+run = "open 'x-apple.systempreferences:com.apple.Sharing-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences file sharing remote login screen sharing"
+
+[[command]]
+name = "Siri"
+run = "open 'x-apple.systempreferences:com.apple.Siri-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences apple intelligence assistant"
+
+[[command]]
+name = "Software Update"
+run = "open 'x-apple.systempreferences:com.apple.Software-Update-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences upgrade macos"
+
+[[command]]
+name = "Sound"
+run = "open 'x-apple.systempreferences:com.apple.Sound-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences audio volume output input microphone"
+
+[[command]]
+name = "Spotlight"
+run = "open 'x-apple.systempreferences:com.apple.Spotlight-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences search"
+
+[[command]]
+name = "Startup Disk"
+run = "open 'x-apple.systempreferences:com.apple.Startup-Disk-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences boot"
+
+[[command]]
+name = "Storage"
+run = "open 'x-apple.systempreferences:com.apple.settings.Storage'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences disk space"
+
+[[command]]
+name = "Time Machine"
+run = "open 'x-apple.systempreferences:com.apple.Time-Machine-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences backup"
+
+[[command]]
+name = "Touch ID & Password"
+run = "open 'x-apple.systempreferences:com.apple.Touch-ID-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences fingerprint"
+
+[[command]]
+name = "Trackpad"
+run = "open 'x-apple.systempreferences:com.apple.Trackpad-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences gestures tap click scroll"
+
+[[command]]
+name = "Users & Groups"
+run = "open 'x-apple.systempreferences:com.apple.Users-Groups-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences accounts"
+
+[[command]]
+name = "VPN"
+run = "open 'x-apple.systempreferences:com.apple.NetworkExtensionSettingsUI.NESettingsUIExtension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences tunnel"
+
+[[command]]
+name = "Wallpaper"
+run = "open 'x-apple.systempreferences:com.apple.Wallpaper-Settings.extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences background desktop picture"
+
+[[command]]
+name = "Wi-Fi"
+run = "open 'x-apple.systempreferences:com.apple.wifi-settings-extension'"
+subtitle = "System Settings"
+icon = "/System/Applications/System Settings.app"
+keywords = "settings preferences wifi wireless network"
 
 [[command]]
 name = "Raylauncher: Edit Config"

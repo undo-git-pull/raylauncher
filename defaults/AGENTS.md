@@ -37,7 +37,7 @@ Error messages name the file, the key path, and the valid alternatives, for exam
 |---|---|---|
 | `raylauncher.toml` | Hotkey, shell, editor, window, search, calculator | Tables of fixed keys |
 | `commands.toml` | Commands the user adds | List of `[[command]]` |
-| `system.toml` | Lock, sleep, restart, and raylauncher actions | List of `[[command]]` |
+| `system.toml` | Lock, sleep, restart, System Settings panes, and raylauncher actions | List of `[[command]]` |
 
 ### raylauncher.toml
 
