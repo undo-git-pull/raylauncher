@@ -9,8 +9,12 @@ use std::process::{Command as Proc, Stdio};
 use objc2::rc::Retained;
 use objc2::runtime::Sel;
 use objc2::{MainThreadMarker, sel};
-use objc2_app_kit::{NSApplication, NSApplicationActivationPolicy, NSEventModifierFlags, NSPasteboard, NSPasteboardTypeString, NSWorkspace};
-use objc2_foundation::{NSString, NSURL};
+use block2::RcBlock;
+use objc2_app_kit::{
+    NSApplication, NSApplicationActivationPolicy, NSEventModifierFlags, NSPasteboard, NSPasteboardTypeString, NSRunningApplication, NSWorkspace,
+    NSWorkspaceOpenConfiguration,
+};
+use objc2_foundation::{NSError, NSString, NSURL};
 
 use crate::calc;
 use crate::catalog::{Action, Catalog, History, Icon, Item};
@@ -88,6 +92,24 @@ pub fn compute_results(
 
 fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', r"'\''"))
+}
+
+/// Launch an app as an application, not as a document. `openURL` on a bundle's file URL
+/// goes through LaunchServices' document path, which can write to the bundle on our
+/// behalf and makes macOS App Management show "raylauncher was prevented from modifying
+/// apps on your Mac". The application path (what `open -a` uses) does not.
+fn open_app(p: &Path) {
+    let url = NSURL::fileURLWithPath(&NSString::from_str(&p.to_string_lossy()));
+    let config = NSWorkspaceOpenConfiguration::configuration();
+    let path = p.to_path_buf();
+    // Called on a background queue; `log` only writes to stderr.
+    let done = RcBlock::new(move |_app: *mut NSRunningApplication, err: *mut NSError| {
+        // SAFETY: AppKit passes either null or a valid NSError for the duration of the call.
+        if let Some(err) = unsafe { err.as_ref() } {
+            log(format!("could not open {}: {}", path.display(), err.localizedDescription()));
+        }
+    });
+    NSWorkspace::sharedWorkspace().openApplicationAtURL_configuration_completionHandler(&url, &config, Some(&done));
 }
 
 fn canonical(p: &Path) -> Option<PathBuf> {
@@ -178,12 +200,7 @@ impl State {
         let Some(item) = self.results.get(index).cloned() else { return };
         match &item.action {
             Action::OpenApp(p) if alternate => self.run_shell(&format!("open -R {}", shell_quote(&p.to_string_lossy()))),
-            Action::OpenApp(p) => {
-                let url = NSURL::fileURLWithPath(&NSString::from_str(&p.to_string_lossy()));
-                if !NSWorkspace::sharedWorkspace().openURL(&url) {
-                    log(format!("could not open {}", p.display()));
-                }
-            }
+            Action::OpenApp(p) => open_app(p),
             Action::Run { cmd, confirm } => {
                 if *confirm && self.armed.as_deref() != Some(item.id.as_str()) {
                     self.selected = index;
