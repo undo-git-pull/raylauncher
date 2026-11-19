@@ -8,14 +8,18 @@ use objc2::rc::Retained;
 use objc2::runtime::{Bool, ProtocolObject, Sel};
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, Message, define_class, msg_send};
 use objc2_app_kit::{
-    NSAppearance, NSApplication, NSBezierPath, NSImageResizingMode, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
-    NSAutoresizingMaskOptions, NSBackingStoreType, NSColor, NSControl, NSControlTextEditingDelegate, NSEvent,
-    NSFocusRingType, NSFont, NSImage, NSImageScaling, NSImageView, NSLineBreakMode, NSPanel, NSResponder, NSScreen,
-    NSTextField, NSTextFieldDelegate, NSTextView, NSView, NSVisualEffectBlendingMode, NSVisualEffectMaterial,
-    NSVisualEffectState, NSVisualEffectView, NSWindow, NSWindowCollectionBehavior, NSWindowDelegate,
-    NSWindowStyleMask, NSWorkspace,
+    NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
+    NSApplication, NSAutoresizingMaskOptions, NSBackingStoreType, NSBezierPath, NSColor, NSControl,
+    NSControlTextEditingDelegate, NSEvent, NSFocusRingType, NSFont, NSImage, NSImageResizingMode,
+    NSImageScaling, NSImageView, NSLineBreakMode, NSPanel, NSResponder, NSScreen, NSTextField,
+    NSTextFieldDelegate, NSTextView, NSView, NSVisualEffectBlendingMode, NSVisualEffectMaterial,
+    NSVisualEffectState, NSVisualEffectView, NSWindow, NSWindowCollectionBehavior,
+    NSWindowDelegate, NSWindowStyleMask, NSWorkspace,
 };
-use objc2_foundation::{NSDistributedNotificationCenter, NSEdgeInsets, NSNotification, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString};
+use objc2_foundation::{
+    NSDistributedNotificationCenter, NSEdgeInsets, NSNotification, NSObject, NSObjectProtocol,
+    NSPoint, NSRect, NSSize, NSString,
+};
 
 use crate::catalog::{Icon, Item};
 use crate::config::Window;
@@ -124,7 +128,8 @@ pub const TOGGLE_NOTIFICATION: &str = "local.raylauncher.toggle";
 
 impl Controller {
     pub fn new(mtm: MainThreadMarker) -> Retained<Self> {
-        let this: Retained<Self> = unsafe { msg_send![super(Self::alloc(mtm).set_ivars(())), init] };
+        let this: Retained<Self> =
+            unsafe { msg_send![super(Self::alloc(mtm).set_ivars(())), init] };
         // `raylauncher toggle` posts this notification; lets other tools and tests open the window.
         unsafe {
             NSDistributedNotificationCenter::defaultCenter().addObserver_selector_name_object(
@@ -141,12 +146,13 @@ impl Controller {
 /// Ask a running raylauncher to show or hide its window.
 pub fn post_toggle() {
     unsafe {
-        NSDistributedNotificationCenter::defaultCenter().postNotificationName_object_userInfo_deliverImmediately(
-            &ns(TOGGLE_NOTIFICATION),
-            None,
-            None,
-            true,
-        );
+        NSDistributedNotificationCenter::defaultCenter()
+            .postNotificationName_object_userInfo_deliverImmediately(
+                &ns(TOGGLE_NOTIFICATION),
+                None,
+                None,
+                true,
+            );
     }
 }
 
@@ -184,7 +190,11 @@ impl Metrics {
         }
     }
     fn height(&self, rows: usize) -> f64 {
-        let list = if rows > 0 { 4.0 + rows as f64 * self.row_h } else { 0.0 };
+        let list = if rows > 0 {
+            4.0 + rows as f64 * self.row_h
+        } else {
+            0.0
+        };
         self.pad * 2.0 + self.input_h + list
     }
 }
@@ -245,7 +255,10 @@ impl Ui {
         };
         panel.setAppearance(appearance.as_deref());
 
-        let bg = NSVisualEffectView::initWithFrame(NSVisualEffectView::alloc(mtm), rect(0.0, 0.0, m.width, h));
+        let bg = NSVisualEffectView::initWithFrame(
+            NSVisualEffectView::alloc(mtm),
+            rect(0.0, 0.0, m.width, h),
+        );
         bg.setMaterial(NSVisualEffectMaterial::Popover);
         bg.setBlendingMode(NSVisualEffectBlendingMode::BehindWindow);
         bg.setState(NSVisualEffectState::Active);
@@ -259,7 +272,8 @@ impl Ui {
             msg_send![super(FlipView::alloc(mtm).set_ivars(())), initWithFrame: rect(0.0, 0.0, m.width, h)]
         };
         root.setAutoresizingMask(
-            NSAutoresizingMaskOptions::ViewWidthSizable | NSAutoresizingMaskOptions::ViewHeightSizable,
+            NSAutoresizingMaskOptions::ViewWidthSizable
+                | NSAutoresizingMaskOptions::ViewHeightSizable,
         );
         bg.addSubview(&root);
 
@@ -267,7 +281,12 @@ impl Ui {
         let glyph_size = (w.font_size * 0.95).round();
         let glyph = NSImageView::initWithFrame(
             NSImageView::alloc(mtm),
-            rect(m.pad + 8.0, m.pad + (m.input_h - glyph_size) / 2.0, glyph_size, glyph_size),
+            rect(
+                m.pad + 8.0,
+                m.pad + (m.input_h - glyph_size) / 2.0,
+                glyph_size,
+                glyph_size,
+            ),
         );
         glyph.setImage(symbol("magnifyingglass").as_deref());
         glyph.setImageScaling(NSImageScaling::ScaleProportionallyUpOrDown);
@@ -278,7 +297,12 @@ impl Ui {
         let fx = m.pad + 8.0 + glyph_size + 10.0;
         let field = NSTextField::initWithFrame(
             NSTextField::alloc(mtm),
-            rect(fx, m.pad + (m.input_h - field_h) / 2.0, m.width - fx - m.pad - 8.0, field_h),
+            rect(
+                fx,
+                m.pad + (m.input_h - field_h) / 2.0,
+                m.width - fx - m.pad - 8.0,
+                field_h,
+            ),
         );
         field.setBezeled(false);
         field.setDrawsBackground(false);
@@ -295,7 +319,11 @@ impl Ui {
 
         let mut rows = Vec::with_capacity(w.max_results);
         let row_w = m.width - 2.0 * m.pad;
-        let text_x = if w.show_icons { 10.0 + m.icon + 10.0 } else { 14.0 };
+        let text_x = if w.show_icons {
+            10.0 + m.icon + 10.0
+        } else {
+            14.0
+        };
         for i in 0..w.max_results {
             let y = m.pad + m.input_h + 4.0 + i as f64 * m.row_h;
             let view: Retained<RowView> = unsafe {
@@ -326,10 +354,24 @@ impl Ui {
             view.addSubview(&sub);
             view.setHidden(true);
             root.addSubview(&view);
-            rows.push(Row { view, icon, title, sub });
+            rows.push(Row {
+                view,
+                icon,
+                title,
+                sub,
+            });
         }
 
-        Ui { panel, field, rows, m, top_offset: w.top_offset, show_icons: w.show_icons, top: 0.0, icons: HashMap::new() }
+        Ui {
+            panel,
+            field,
+            rows,
+            m,
+            top_offset: w.top_offset,
+            show_icons: w.show_icons,
+            top: 0.0,
+            icons: HashMap::new(),
+        }
     }
 
     pub fn is_visible(&self) -> bool {
@@ -360,7 +402,10 @@ impl Ui {
             self.top = vf.origin.y + vf.size.height - full.size.height * self.top_offset;
             let x = vf.origin.x + (vf.size.width - self.m.width) / 2.0;
             let h = self.panel.frame().size.height;
-            self.panel.setFrame_display(rect(x.round(), (self.top - h).round(), self.m.width, h), false);
+            self.panel.setFrame_display(
+                rect(x.round(), (self.top - h).round(), self.m.width, h),
+                false,
+            );
         }
         self.field.setStringValue(&ns(""));
         // Activate so keystrokes reach the field even when another app owns keyboard focus.
@@ -405,10 +450,17 @@ impl Ui {
             let it = &items[i];
             let sel = i == selected;
             row.title.setStringValue(&ns(&it.title));
-            let sub = if sel { note.unwrap_or(&it.subtitle) } else { &it.subtitle };
+            let sub = if sel {
+                note.unwrap_or(&it.subtitle)
+            } else {
+                &it.subtitle
+            };
             row.sub.setStringValue(&ns(sub));
             let (fg, fg2) = if sel {
-                (NSColor::whiteColor(), NSColor::whiteColor().colorWithAlphaComponent(0.8))
+                (
+                    NSColor::whiteColor(),
+                    NSColor::whiteColor().colorWithAlphaComponent(0.8),
+                )
             } else {
                 (NSColor::labelColor(), NSColor::secondaryLabelColor())
             };
@@ -428,8 +480,13 @@ impl Ui {
         let h = self.m.height(n);
         let f = self.panel.frame();
         if (f.size.height - h).abs() > 0.5 {
-            let top = if self.top > 0.0 { self.top } else { f.origin.y + f.size.height };
-            self.panel.setFrame_display(rect(f.origin.x, top - h, f.size.width, h), true);
+            let top = if self.top > 0.0 {
+                self.top
+            } else {
+                f.origin.y + f.size.height
+            };
+            self.panel
+                .setFrame_display(rect(f.origin.x, top - h, f.size.width, h), true);
             self.panel.invalidateShadow();
         }
     }
@@ -447,7 +504,12 @@ fn rounded_mask(r: f64) -> Retained<NSImage> {
         Bool::YES
     });
     let img = NSImage::imageWithSize_flipped_drawingHandler(NSSize::new(side, side), false, &draw);
-    img.setCapInsets(NSEdgeInsets { top: r, left: r, bottom: r, right: r });
+    img.setCapInsets(NSEdgeInsets {
+        top: r,
+        left: r,
+        bottom: r,
+        right: r,
+    });
     // NSImageResizingModeStretch is 1 where TARGET_ABI_USES_IOS_VALUES (Apple silicon) and 0 on
     // Intel (AppKit/NSImage.h). objc2-app-kit 0.3.2's `Stretch` constant has these swapped.
     let stretch = if cfg!(target_arch = "x86_64") { 0 } else { 1 };
@@ -459,7 +521,10 @@ fn symbol(name: &str) -> Option<Retained<NSImage>> {
     NSImage::imageWithSystemSymbolName_accessibilityDescription(&ns(name), None)
 }
 
-fn icon_for(cache: &mut HashMap<String, Retained<NSImage>>, icon: &Icon) -> Option<Retained<NSImage>> {
+fn icon_for(
+    cache: &mut HashMap<String, Retained<NSImage>>,
+    icon: &Icon,
+) -> Option<Retained<NSImage>> {
     let key = match icon {
         Icon::None => return None,
         Icon::File(p) => p.to_string_lossy().into_owned(),
@@ -469,7 +534,9 @@ fn icon_for(cache: &mut HashMap<String, Retained<NSImage>>, icon: &Icon) -> Opti
         return Some(img.clone());
     }
     let img = match icon {
-        Icon::File(p) => Some(NSWorkspace::sharedWorkspace().iconForFile(&ns(&p.to_string_lossy()))),
+        Icon::File(p) => {
+            Some(NSWorkspace::sharedWorkspace().iconForFile(&ns(&p.to_string_lossy())))
+        }
         Icon::Symbol(s) => symbol(s),
         Icon::None => None,
     }?;

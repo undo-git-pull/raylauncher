@@ -17,9 +17,32 @@ const CONTROL: u32 = 1 << 12;
 fn keycode(name: &str) -> Option<u32> {
     // macOS virtual key codes (ANSI layout positions).
     const LETTERS: [(char, u32); 26] = [
-        ('a', 0), ('b', 11), ('c', 8), ('d', 2), ('e', 14), ('f', 3), ('g', 5), ('h', 4), ('i', 34),
-        ('j', 38), ('k', 40), ('l', 37), ('m', 46), ('n', 45), ('o', 31), ('p', 35), ('q', 12),
-        ('r', 15), ('s', 1), ('t', 17), ('u', 32), ('v', 9), ('w', 13), ('x', 7), ('y', 16), ('z', 6),
+        ('a', 0),
+        ('b', 11),
+        ('c', 8),
+        ('d', 2),
+        ('e', 14),
+        ('f', 3),
+        ('g', 5),
+        ('h', 4),
+        ('i', 34),
+        ('j', 38),
+        ('k', 40),
+        ('l', 37),
+        ('m', 46),
+        ('n', 45),
+        ('o', 31),
+        ('p', 35),
+        ('q', 12),
+        ('r', 15),
+        ('s', 1),
+        ('t', 17),
+        ('u', 32),
+        ('v', 9),
+        ('w', 13),
+        ('x', 7),
+        ('y', 16),
+        ('z', 6),
     ];
     const DIGITS: [u32; 10] = [29, 18, 19, 20, 21, 23, 22, 26, 28, 25];
     const FKEYS: [u32; 12] = [122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111];
@@ -66,11 +89,17 @@ impl Combo {
                 "alt" | "option" | "opt" => OPTION,
                 "ctrl" | "control" => CONTROL,
                 "shift" => SHIFT,
-                _ => return Err(format!("unknown modifier {m:?} (use cmd, alt, ctrl, shift)")),
+                _ => {
+                    return Err(format!(
+                        "unknown modifier {m:?} (use cmd, alt, ctrl, shift)"
+                    ));
+                }
             };
         }
         if modifiers == 0 && !key.starts_with('f') {
-            return Err(format!("{s:?} has no modifier; add cmd, alt, ctrl or shift"));
+            return Err(format!(
+                "{s:?} has no modifier; add cmd, alt, ctrl or shift"
+            ));
         }
         let keycode = keycode(key).ok_or_else(|| format!("unknown key {key:?}"))?;
         Ok(Combo { keycode, modifiers })
@@ -125,8 +154,18 @@ extern "C" fn on_event(_next: *mut c_void, _event: *mut c_void, _user: *mut c_vo
 pub fn install(cb: fn()) {
     unsafe {
         CALLBACK = Some(cb);
-        let spec = EventTypeSpec { class: u32::from_be_bytes(*b"keyb"), kind: 5 }; // kEventHotKeyPressed
-        InstallEventHandler(GetApplicationEventTarget(), on_event, 1, &spec, std::ptr::null_mut(), std::ptr::null_mut());
+        let spec = EventTypeSpec {
+            class: u32::from_be_bytes(*b"keyb"),
+            kind: 5,
+        }; // kEventHotKeyPressed
+        InstallEventHandler(
+            GetApplicationEventTarget(),
+            on_event,
+            1,
+            &spec,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+        );
     }
 }
 
@@ -140,10 +179,24 @@ impl Drop for Registration {
 
 pub fn register(c: Combo) -> Result<Registration, String> {
     let mut out = std::ptr::null_mut();
-    let id = EventHotKeyID { signature: u32::from_be_bytes(*b"lnch"), id: 1 };
-    let status = unsafe { RegisterEventHotKey(c.keycode, c.modifiers, id, GetApplicationEventTarget(), 0, &mut out) };
+    let id = EventHotKeyID {
+        signature: u32::from_be_bytes(*b"lnch"),
+        id: 1,
+    };
+    let status = unsafe {
+        RegisterEventHotKey(
+            c.keycode,
+            c.modifiers,
+            id,
+            GetApplicationEventTarget(),
+            0,
+            &mut out,
+        )
+    };
     if status != 0 || out.is_null() {
-        return Err(format!("RegisterEventHotKey failed (status {status}); another app may own this shortcut"));
+        return Err(format!(
+            "RegisterEventHotKey failed (status {status}); another app may own this shortcut"
+        ));
     }
     Ok(Registration(out))
 }
@@ -153,8 +206,20 @@ mod tests {
     use super::*;
     #[test]
     fn parse() {
-        assert_eq!(Combo::parse("alt+space").unwrap(), Combo { keycode: 49, modifiers: OPTION });
-        assert_eq!(Combo::parse("Cmd+Shift+K").unwrap(), Combo { keycode: 40, modifiers: CMD | SHIFT });
+        assert_eq!(
+            Combo::parse("alt+space").unwrap(),
+            Combo {
+                keycode: 49,
+                modifiers: OPTION
+            }
+        );
+        assert_eq!(
+            Combo::parse("Cmd+Shift+K").unwrap(),
+            Combo {
+                keycode: 40,
+                modifiers: CMD | SHIFT
+            }
+        );
         assert_eq!(Combo::parse("f5").unwrap().keycode, 96);
         assert!(Combo::parse("space").is_err());
         assert!(Combo::parse("hyper+k").is_err());

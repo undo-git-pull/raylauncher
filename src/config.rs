@@ -146,7 +146,11 @@ pub fn state_dir() -> PathBuf {
 /// touched, except AGENTS.md, which documents the running version and is kept current.
 pub fn ensure_files(dir: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(dir)?;
-    for (name, body) in [(MAIN_FILE, DEFAULT_MAIN), (COMMANDS_FILE, DEFAULT_COMMANDS), (SYSTEM_FILE, DEFAULT_SYSTEM)] {
+    for (name, body) in [
+        (MAIN_FILE, DEFAULT_MAIN),
+        (COMMANDS_FILE, DEFAULT_COMMANDS),
+        (SYSTEM_FILE, DEFAULT_SYSTEM),
+    ] {
         let p = dir.join(name);
         if !p.exists() {
             std::fs::write(&p, body)?;
@@ -176,17 +180,30 @@ pub fn builtin() -> Config {
     .expect("built-in config is valid")
 }
 
-fn load_from(dir: &Path, read: impl Fn(&str) -> Result<String, String>) -> Result<Config, ConfigError> {
+fn load_from(
+    dir: &Path,
+    read: impl Fn(&str) -> Result<String, String>,
+) -> Result<Config, ConfigError> {
     let main_path = dir.join(MAIN_FILE);
-    let err = |file: &Path, message: String| ConfigError { file: file.to_path_buf(), message };
+    let err = |file: &Path, message: String| ConfigError {
+        file: file.to_path_buf(),
+        message,
+    };
 
     let user_src = read(MAIN_FILE).map_err(|e| err(&main_path, e))?;
-    let mut merged: Table = DEFAULT_MAIN.parse().expect("built-in raylauncher.toml is valid");
-    let user: Table = user_src.parse().map_err(|e: toml::de::Error| err(&main_path, e.to_string()))?;
+    let mut merged: Table = DEFAULT_MAIN
+        .parse()
+        .expect("built-in raylauncher.toml is valid");
+    let user: Table = user_src
+        .parse()
+        .map_err(|e: toml::de::Error| err(&main_path, e.to_string()))?;
     merge(&mut merged, user, "").map_err(|e| err(&main_path, e))?;
-    let main: Main = Value::Table(merged).try_into().map_err(|e: toml::de::Error| err(&main_path, e.to_string()))?;
+    let main: Main = Value::Table(merged)
+        .try_into()
+        .map_err(|e: toml::de::Error| err(&main_path, e.to_string()))?;
     validate_main(&main).map_err(|e| err(&main_path, e))?;
-    let hotkey = crate::hotkey::Combo::parse(&main.hotkey).map_err(|e| err(&main_path, format!("hotkey: {e}")))?;
+    let hotkey = crate::hotkey::Combo::parse(&main.hotkey)
+        .map_err(|e| err(&main_path, format!("hotkey: {e}")))?;
 
     let mut commands = Vec::new();
     for name in [COMMANDS_FILE, SYSTEM_FILE] {
@@ -194,13 +211,18 @@ fn load_from(dir: &Path, read: impl Fn(&str) -> Result<String, String>) -> Resul
         let src = read(name).map_err(|e| err(&path, e))?;
         let file: CommandFile = toml::from_str(&src).map_err(|e| err(&path, e.to_string()))?;
         for (i, c) in file.command.into_iter().enumerate() {
-            validate_command(&c).map_err(|e| err(&path, format!("[[command]] #{} ({:?}): {e}", i + 1, c.name)))?;
+            validate_command(&c)
+                .map_err(|e| err(&path, format!("[[command]] #{} ({:?}): {e}", i + 1, c.name)))?;
             if c.enabled {
                 commands.push(c);
             }
         }
     }
-    Ok(Config { main, hotkey, commands })
+    Ok(Config {
+        main,
+        hotkey,
+        commands,
+    })
 }
 
 fn read_optional(p: &Path) -> Result<String, String> {
@@ -218,10 +240,17 @@ const FREE_TABLES: &[&str] = &["search.boost"];
 
 fn merge(base: &mut Table, user: Table, prefix: &str) -> Result<(), String> {
     for (k, v) in user {
-        let path = if prefix.is_empty() { k.clone() } else { format!("{prefix}.{k}") };
+        let path = if prefix.is_empty() {
+            k.clone()
+        } else {
+            format!("{prefix}.{k}")
+        };
         let Some(slot) = base.get_mut(&k) else {
             let valid: Vec<&str> = base.keys().map(String::as_str).collect();
-            return Err(format!("unknown key `{path}`. Valid keys here: {}", valid.join(", ")));
+            return Err(format!(
+                "unknown key `{path}`. Valid keys here: {}",
+                valid.join(", ")
+            ));
         };
         match (slot, v) {
             // Free-form name -> number map: the user's table replaces the default one.
@@ -232,7 +261,10 @@ fn merge(base: &mut Table, user: Table, prefix: &str) -> Result<(), String> {
                         Value::Integer(i) => i as f64,
                         Value::Float(f) => f,
                         other => {
-                            return Err(format!("`{path}.{name}` should be a number, found {}", other.type_str()));
+                            return Err(format!(
+                                "`{path}.{name}` should be a number, found {}",
+                                other.type_str()
+                            ));
                         }
                     };
                     t.insert(name, Value::Float(n));
@@ -243,7 +275,11 @@ fn merge(base: &mut Table, user: Table, prefix: &str) -> Result<(), String> {
             (slot @ Value::Float(_), Value::Integer(i)) => *slot = Value::Float(i as f64),
             (slot, v) if std::mem::discriminant(slot) == std::mem::discriminant(&v) => *slot = v,
             (slot, v) => {
-                return Err(format!("`{path}` should be of type {}, found {}", slot.type_str(), v.type_str()));
+                return Err(format!(
+                    "`{path}` should be of type {}, found {}",
+                    slot.type_str(),
+                    v.type_str()
+                ));
             }
         }
     }
@@ -256,16 +292,28 @@ fn validate_main(m: &Main) -> Result<(), String> {
         return Err(format!("window.width must be 200-3000, got {}", w.width));
     }
     if !(1..=20).contains(&w.max_results) {
-        return Err(format!("window.max_results must be 1-20, got {}", w.max_results));
+        return Err(format!(
+            "window.max_results must be 1-20, got {}",
+            w.max_results
+        ));
     }
     if !(8.0..=72.0).contains(&w.font_size) {
-        return Err(format!("window.font_size must be 8-72, got {}", w.font_size));
+        return Err(format!(
+            "window.font_size must be 8-72, got {}",
+            w.font_size
+        ));
     }
     if !(0.0..=0.8).contains(&w.top_offset) {
-        return Err(format!("window.top_offset must be 0-0.8, got {}", w.top_offset));
+        return Err(format!(
+            "window.top_offset must be 0-0.8, got {}",
+            w.top_offset
+        ));
     }
     if !matches!(w.theme.as_str(), "system" | "dark" | "light") {
-        return Err(format!("window.theme must be \"system\", \"dark\" or \"light\", got {:?}", w.theme));
+        return Err(format!(
+            "window.theme must be \"system\", \"dark\" or \"light\", got {:?}",
+            w.theme
+        ));
     }
     if m.shell.is_empty() {
         return Err("shell must have at least one element, e.g. [\"/bin/zsh\", \"-lc\"]".into());
@@ -276,11 +324,25 @@ fn validate_main(m: &Main) -> Result<(), String> {
     if m.search.history_weight < 0.0 {
         return Err("search.history_weight must be >= 0".into());
     }
-    if let Some((name, v)) = m.search.boost.iter().find(|(_, v)| !(-1000.0..=1000.0).contains(*v)) {
-        return Err(format!("search.boost.{name} must be between -1000 and 1000, got {v}"));
+    if let Some((name, v)) = m
+        .search
+        .boost
+        .iter()
+        .find(|(_, v)| !(-1000.0..=1000.0).contains(*v))
+    {
+        return Err(format!(
+            "search.boost.{name} must be between -1000 and 1000, got {v}"
+        ));
     }
-    if let Some(bad) = m.search.extra_apps.iter().find(|a| !a.trim_end_matches('/').ends_with(".app")) {
-        return Err(format!("search.extra_apps entries must be paths to .app bundles, got {bad:?}"));
+    if let Some(bad) = m
+        .search
+        .extra_apps
+        .iter()
+        .find(|a| !a.trim_end_matches('/').ends_with(".app"))
+    {
+        return Err(format!(
+            "search.extra_apps entries must be paths to .app bundles, got {bad:?}"
+        ));
     }
     if m.calculator.precision > 15 {
         return Err("calculator.precision must be 0-15".into());
@@ -298,7 +360,11 @@ fn validate_command(c: &Command) -> Result<(), String> {
         return Err("run must not be empty".into());
     }
     if c.run.starts_with('@') && !BUILTINS.contains(&c.run.as_str()) {
-        return Err(format!("unknown built-in {:?}. Built-ins: {}", c.run, BUILTINS.join(", ")));
+        return Err(format!(
+            "unknown built-in {:?}. Built-ins: {}",
+            c.run,
+            BUILTINS.join(", ")
+        ));
     }
     Ok(())
 }
@@ -347,7 +413,12 @@ mod tests {
         assert_eq!(b.get("Visual Studio Code"), Some(&-5.5));
         assert_eq!(b.get("Finder"), None);
         let d = dir_with("[search.boost]\nSafari = \"high\"\n");
-        assert!(load(&d).unwrap_err().message.contains("search.boost.Safari"));
+        assert!(
+            load(&d)
+                .unwrap_err()
+                .message
+                .contains("search.boost.Safari")
+        );
     }
 
     #[test]

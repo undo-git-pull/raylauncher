@@ -51,13 +51,26 @@ pub struct Watcher {
     _handler: Box<Box<dyn Fn(Vec<PathBuf>)>>,
 }
 
-extern "C" fn trampoline(_s: StreamRef, info: *mut c_void, n: usize, paths: *mut c_void, _f: *const u32, _i: *const u64) {
+extern "C" fn trampoline(
+    _s: StreamRef,
+    info: *mut c_void,
+    n: usize,
+    paths: *mut c_void,
+    _f: *const u32,
+    _i: *const u64,
+) {
     // SAFETY: `info` is the boxed handler owned by the live Watcher; `paths` is a C array
     // of `n` C strings because the stream was created without kFSEventStreamCreateFlagUseCFTypes.
     let handler = unsafe { &*(info as *const Box<dyn Fn(Vec<PathBuf>)>) };
     let paths = paths as *const *const c_char;
     let list = (0..n)
-        .map(|i| PathBuf::from(unsafe { CStr::from_ptr(*paths.add(i)) }.to_string_lossy().into_owned()))
+        .map(|i| {
+            PathBuf::from(
+                unsafe { CStr::from_ptr(*paths.add(i)) }
+                    .to_string_lossy()
+                    .into_owned(),
+            )
+        })
         .collect();
     handler(list);
 }
@@ -65,8 +78,15 @@ extern "C" fn trampoline(_s: StreamRef, info: *mut c_void, n: usize, paths: *mut
 impl Watcher {
     /// Watch `dirs` recursively. `latency` seconds coalesces bursts such as an editor's
     /// write-rename-chmod save sequence into one callback.
-    pub fn new(dirs: &[PathBuf], latency: f64, handler: impl Fn(Vec<PathBuf>) + 'static) -> Option<Watcher> {
-        let strs: Vec<Retained<NSString>> = dirs.iter().map(|d| NSString::from_str(&d.to_string_lossy())).collect();
+    pub fn new(
+        dirs: &[PathBuf],
+        latency: f64,
+        handler: impl Fn(Vec<PathBuf>) + 'static,
+    ) -> Option<Watcher> {
+        let strs: Vec<Retained<NSString>> = dirs
+            .iter()
+            .map(|d| NSString::from_str(&d.to_string_lossy()))
+            .collect();
         if strs.is_empty() {
             return None;
         }
@@ -94,7 +114,10 @@ impl Watcher {
             }
             FSEventStreamScheduleWithRunLoop(stream, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
             FSEventStreamStart(stream);
-            Some(Watcher { stream, _handler: handler })
+            Some(Watcher {
+                stream,
+                _handler: handler,
+            })
         }
     }
 }

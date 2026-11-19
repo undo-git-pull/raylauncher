@@ -23,9 +23,12 @@ fn tokenize(s: &str) -> Result<Vec<Tok>, String> {
         let ch = c[i];
         if ch.is_whitespace() {
             i += 1;
-        } else if ch.is_ascii_digit() || (ch == '.' && c.get(i + 1).is_some_and(|d| d.is_ascii_digit())) {
+        } else if ch.is_ascii_digit()
+            || (ch == '.' && c.get(i + 1).is_some_and(|d| d.is_ascii_digit()))
+        {
             // radix literals: 0x 0b 0o
-            if ch == '0' && i + 1 < c.len() && matches!(c[i + 1], 'x' | 'X' | 'b' | 'B' | 'o' | 'O') {
+            if ch == '0' && i + 1 < c.len() && matches!(c[i + 1], 'x' | 'X' | 'b' | 'B' | 'o' | 'O')
+            {
                 let radix = match c[i + 1].to_ascii_lowercase() {
                     'x' => 16,
                     'b' => 2,
@@ -63,13 +66,17 @@ fn tokenize(s: &str) -> Result<Vec<Tok>, String> {
                 }
             }
             let text: String = c[start..i].iter().filter(|&&d| d != '_').collect();
-            out.push(Tok::Num(text.parse().map_err(|_| format!("bad number `{text}`"))?));
+            out.push(Tok::Num(
+                text.parse().map_err(|_| format!("bad number `{text}`"))?,
+            ));
         } else if ch.is_alphabetic() {
             let start = i;
             while i < c.len() && (c[i].is_alphanumeric() || c[i] == '_') {
                 i += 1;
             }
-            out.push(Tok::Ident(c[start..i].iter().collect::<String>().to_lowercase()));
+            out.push(Tok::Ident(
+                c[start..i].iter().collect::<String>().to_lowercase(),
+            ));
         } else {
             let op = match ch {
                 '+' | '-' | '/' | '%' | '^' | '(' | ')' | ',' | '!' => ch,
@@ -258,7 +265,10 @@ fn call(name: &str, a: &[f64]) -> Result<f64, String> {
 
 pub fn eval(src: &str) -> Result<f64, String> {
     let src = src.trim().trim_start_matches('=');
-    let mut p = Parser { t: tokenize(src)?, p: 0 };
+    let mut p = Parser {
+        t: tokenize(src)?,
+        p: 0,
+    };
     let v = p.expr()?;
     if p.p != p.t.len() {
         return Err("trailing input".into());
@@ -296,11 +306,19 @@ pub fn format(v: f64, precision: usize) -> String {
     if a != 0.0 && (a >= 1e15 || a < 1e-6) {
         let s = format!("{:.*e}", precision.min(15), v);
         let (m, e) = s.split_once('e').unwrap();
-        let m = if m.contains('.') { m.trim_end_matches('0').trim_end_matches('.') } else { m };
+        let m = if m.contains('.') {
+            m.trim_end_matches('0').trim_end_matches('.')
+        } else {
+            m
+        };
         return format!("{m}e{e}");
     }
     let s = format!("{:.*}", precision, v);
-    let s = if s.contains('.') { s.trim_end_matches('0').trim_end_matches('.').to_string() } else { s };
+    let s = if s.contains('.') {
+        s.trim_end_matches('0').trim_end_matches('.').to_string()
+    } else {
+        s
+    };
     if s == "-0" { "0".into() } else { s }
 }
 

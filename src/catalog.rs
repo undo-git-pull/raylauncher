@@ -38,10 +38,25 @@ pub struct Item {
 }
 
 impl Item {
-    fn new(id: String, title: String, subtitle: String, icon: Icon, action: Action, keywords: &str) -> Item {
+    fn new(
+        id: String,
+        title: String,
+        subtitle: String,
+        icon: Icon,
+        action: Action,
+        keywords: &str,
+    ) -> Item {
         let hay_title = Utf32String::from(title.as_str());
         let hay_keywords = (!keywords.trim().is_empty()).then(|| Utf32String::from(keywords));
-        Item { id, title, subtitle, icon, action, hay_title, hay_keywords }
+        Item {
+            id,
+            title,
+            subtitle,
+            icon,
+            action,
+            hay_title,
+            hay_keywords,
+        }
     }
 
     /// A one-off result (calculator answer, config error) that is never in the index.
@@ -56,11 +71,16 @@ pub fn scan_apps(s: &Search) -> Vec<Item> {
     let mut out = Vec::new();
     let mut seen = std::collections::HashSet::new();
     let mut add = |path: &Path| {
-        let Some(name) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) else { return };
+        let Some(name) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) else {
+            return;
+        };
         if s.exclude.iter().any(|e| e == &name) || !seen.insert(name.clone()) {
             return;
         }
-        let parent = path.parent().map(|p| p.display().to_string()).unwrap_or_default();
+        let parent = path
+            .parent()
+            .map(|p| p.display().to_string())
+            .unwrap_or_default();
         out.push(Item::new(
             path.display().to_string(),
             name,
@@ -83,7 +103,9 @@ pub fn scan_apps(s: &Search) -> Vec<Item> {
 }
 
 fn walk(dir: &Path, depth: usize, f: &mut dyn FnMut(&Path)) {
-    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return;
+    };
     for e in rd.flatten() {
         let p = e.path();
         let name = e.file_name();
@@ -110,10 +132,20 @@ pub fn command_items(cmds: &[Command]) -> Vec<Item> {
             let action = if c.run.starts_with('@') {
                 Action::Builtin(c.run.clone())
             } else {
-                Action::Run { cmd: c.run.clone(), confirm: c.confirm }
+                Action::Run {
+                    cmd: c.run.clone(),
+                    confirm: c.confirm,
+                }
             };
             let subtitle = c.subtitle.clone().unwrap_or_else(|| c.run.clone());
-            Item::new(format!("cmd:{}", c.name), c.name.clone(), subtitle, icon, action, &c.keywords)
+            Item::new(
+                format!("cmd:{}", c.name),
+                c.name.clone(),
+                subtitle,
+                icon,
+                action,
+                &c.keywords,
+            )
         })
         .collect()
 }
@@ -138,7 +170,10 @@ impl History {
                 }
             }
         }
-        History { path: Some(path), counts }
+        History {
+            path: Some(path),
+            counts,
+        }
     }
 
     pub fn get(&self, id: &str) -> u32 {
@@ -175,7 +210,12 @@ pub struct Catalog {
 
 impl Catalog {
     pub fn new(cfg: &Config) -> Catalog {
-        let mut c = Catalog { apps: Vec::new(), commands: Vec::new(), apps_dirty: true, matcher: Matcher::default() };
+        let mut c = Catalog {
+            apps: Vec::new(),
+            commands: Vec::new(),
+            apps_dirty: true,
+            matcher: Matcher::default(),
+        };
         c.apply_config(cfg);
         c
     }
@@ -198,7 +238,13 @@ impl Catalog {
     /// Rank items for `query`. With history on, launch counts add a bonus and an empty
     /// query lists the most-launched items (when `show_recent` is set); with history off,
     /// an empty query returns nothing. Ties go to the shorter, then earlier title.
-    pub fn search(&mut self, query: &str, cfg: &Config, history: &History, limit: usize) -> Vec<Item> {
+    pub fn search(
+        &mut self,
+        query: &str,
+        cfg: &Config,
+        history: &History,
+        limit: usize,
+    ) -> Vec<Item> {
         let s = &cfg.main.search;
         let q = query.trim();
         let weight = if s.history { s.history_weight } else { 0.0 };
@@ -221,7 +267,11 @@ impl Catalog {
             for it in self.apps.iter().chain(self.commands.iter()) {
                 let t = pat.score(it.hay_title.slice(..), matcher);
                 // Keyword hits count, at a discount, so the visible name wins ties.
-                let k = it.hay_keywords.as_ref().and_then(|k| pat.score(k.slice(..), matcher)).map(|v| v * 3 / 4);
+                let k = it
+                    .hay_keywords
+                    .as_ref()
+                    .and_then(|k| pat.score(k.slice(..), matcher))
+                    .map(|v| v * 3 / 4);
                 if let Some(best) = t.max(k) {
                     let pinned = s.boost.get(&it.title).copied().unwrap_or(0.0);
                     scored.push((best as f64 + pinned + boost(&it.id), it));
@@ -234,7 +284,11 @@ impl Catalog {
                 .then_with(|| caseless(&a.1.title).cmp(caseless(&b.1.title)))
                 .then_with(|| a.1.title.cmp(&b.1.title))
         });
-        scored.into_iter().take(limit).map(|(_, it)| it.clone()).collect()
+        scored
+            .into_iter()
+            .take(limit)
+            .map(|(_, it)| it.clone())
+            .collect()
     }
 }
 
@@ -251,14 +305,23 @@ mod tests {
     }
 
     fn app(name: &str) -> Item {
-        Item::new(name.into(), name.into(), String::new(), Icon::None, Action::OpenApp(name.into()), "")
+        Item::new(
+            name.into(),
+            name.into(),
+            String::new(),
+            Icon::None,
+            Action::OpenApp(name.into()),
+            "",
+        )
     }
 
     #[test]
     fn ranks_prefix_and_keywords() {
         let cfg = cfg(false);
         let mut c = Catalog::new(&cfg);
-        c.apps = ["Safari", "System Settings", "Slack", "Font Book"].map(app).to_vec();
+        c.apps = ["Safari", "System Settings", "Slack", "Font Book"]
+            .map(app)
+            .to_vec();
         c.apps_dirty = false;
         let h = History::default();
         assert_eq!(c.search("saf", &cfg, &h, 5)[0].title, "Safari");

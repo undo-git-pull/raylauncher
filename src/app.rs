@@ -6,13 +6,13 @@ use std::cell::RefCell;
 use std::path::{Path, PathBuf};
 use std::process::{Command as Proc, Stdio};
 
+use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::Sel;
 use objc2::{MainThreadMarker, sel};
-use block2::RcBlock;
 use objc2_app_kit::{
-    NSApplication, NSApplicationActivationPolicy, NSEventModifierFlags, NSPasteboard, NSPasteboardTypeString, NSRunningApplication, NSWorkspace,
-    NSWorkspaceOpenConfiguration,
+    NSApplication, NSApplicationActivationPolicy, NSEventModifierFlags, NSPasteboard,
+    NSPasteboardTypeString, NSRunningApplication, NSWorkspace, NSWorkspaceOpenConfiguration,
 };
 use objc2_foundation::{NSError, NSString, NSURL};
 
@@ -51,7 +51,10 @@ fn with_state<R>(f: impl FnOnce(&mut State) -> R) -> Option<R> {
 }
 
 pub fn log(msg: impl AsRef<str>) {
-    let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let t = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
     eprintln!("[{t}] {}", msg.as_ref());
 }
 
@@ -66,7 +69,11 @@ pub fn compute_results(
 ) -> Vec<Item> {
     let mut out = Vec::new();
     if let Some(e) = err {
-        let file = e.file.file_name().map(|f| f.to_string_lossy().into_owned()).unwrap_or_default();
+        let file = e
+            .file
+            .file_name()
+            .map(|f| f.to_string_lossy().into_owned())
+            .unwrap_or_default();
         out.push(Item::transient(
             format!("Config error in {file}. Press Enter to open it."),
             e.message.lines().next().unwrap_or("").to_string(),
@@ -79,7 +86,10 @@ pub fn compute_results(
             let s = calc::format(v, cfg.main.calculator.precision);
             out.push(Item::transient(
                 s.clone(),
-                format!("{} = {s}    Enter copies the result", q.trim().trim_start_matches('=')),
+                format!(
+                    "{} = {s}    Enter copies the result",
+                    q.trim().trim_start_matches('=')
+                ),
                 Icon::Symbol("equal.circle".into()),
                 Action::Copy(s),
             ));
@@ -106,10 +116,18 @@ fn open_app(p: &Path) {
     let done = RcBlock::new(move |_app: *mut NSRunningApplication, err: *mut NSError| {
         // SAFETY: AppKit passes either null or a valid NSError for the duration of the call.
         if let Some(err) = unsafe { err.as_ref() } {
-            log(format!("could not open {}: {}", path.display(), err.localizedDescription()));
+            log(format!(
+                "could not open {}: {}",
+                path.display(),
+                err.localizedDescription()
+            ));
         }
     });
-    NSWorkspace::sharedWorkspace().openApplicationAtURL_configuration_completionHandler(&url, &config, Some(&done));
+    NSWorkspace::sharedWorkspace().openApplicationAtURL_configuration_completionHandler(
+        &url,
+        &config,
+        Some(&done),
+    );
 }
 
 fn canonical(p: &Path) -> Option<PathBuf> {
@@ -120,8 +138,14 @@ fn canonical(p: &Path) -> Option<PathBuf> {
 /// symlinks into a dotfiles repo, the folders that hold the real files.
 fn config_watch_dirs(dir: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = canonical(dir).into_iter().collect();
-    for f in [config::MAIN_FILE, config::COMMANDS_FILE, config::SYSTEM_FILE] {
-        if let Some(parent) = canonical(&dir.join(f)).and_then(|p| p.parent().map(Path::to_path_buf)) {
+    for f in [
+        config::MAIN_FILE,
+        config::COMMANDS_FILE,
+        config::SYSTEM_FILE,
+    ] {
+        if let Some(parent) =
+            canonical(&dir.join(f)).and_then(|p| p.parent().map(Path::to_path_buf))
+        {
             if !dirs.contains(&parent) {
                 dirs.push(parent);
             }
@@ -131,7 +155,13 @@ fn config_watch_dirs(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn watch_apps(cfg: &Config) -> Option<Watcher> {
-    let dirs: Vec<PathBuf> = cfg.main.search.app_dirs.iter().filter_map(|d| canonical(&config::expand_tilde(d))).collect();
+    let dirs: Vec<PathBuf> = cfg
+        .main
+        .search
+        .app_dirs
+        .iter()
+        .filter_map(|d| canonical(&config::expand_tilde(d)))
+        .collect();
     Watcher::new(&dirs, 2.0, |_| {
         with_state(|s| s.catalog.apps_dirty = true);
     })
@@ -141,14 +171,24 @@ impl State {
     fn refresh(&mut self) {
         let q = self.ui.query();
         let limit = self.ui.max_rows();
-        self.results = compute_results(&q, &self.cfg, self.cfg_err.as_ref(), &mut self.catalog, &self.history, limit);
+        self.results = compute_results(
+            &q,
+            &self.cfg,
+            self.cfg_err.as_ref(),
+            &mut self.catalog,
+            &self.history,
+            limit,
+        );
         self.selected = 0;
         self.armed = None;
         self.render();
     }
 
     fn render(&mut self) {
-        let note = self.armed.as_ref().map(|_| "Press Enter again to confirm, Esc to cancel");
+        let note = self
+            .armed
+            .as_ref()
+            .map(|_| "Press Enter again to confirm, Esc to cancel");
         self.ui.render(&self.results, self.selected, note);
     }
 
@@ -192,14 +232,22 @@ impl State {
     }
 
     fn edit(&self, file: &Path) {
-        let cmd = format!("{} {}", self.cfg.main.editor, shell_quote(&file.to_string_lossy()));
+        let cmd = format!(
+            "{} {}",
+            self.cfg.main.editor,
+            shell_quote(&file.to_string_lossy())
+        );
         self.run_shell(&cmd);
     }
 
     fn activate(&mut self, index: usize, alternate: bool) {
-        let Some(item) = self.results.get(index).cloned() else { return };
+        let Some(item) = self.results.get(index).cloned() else {
+            return;
+        };
         match &item.action {
-            Action::OpenApp(p) if alternate => self.run_shell(&format!("open -R {}", shell_quote(&p.to_string_lossy()))),
+            Action::OpenApp(p) if alternate => {
+                self.run_shell(&format!("open -R {}", shell_quote(&p.to_string_lossy())))
+            }
             Action::OpenApp(p) => open_app(p),
             Action::Run { cmd, confirm } => {
                 if *confirm && self.armed.as_deref() != Some(item.id.as_str()) {
@@ -253,7 +301,10 @@ impl State {
             match hotkey::register(new.hotkey) {
                 Ok(r) => self.hotkey = Some(r), // drops and unregisters the old one
                 Err(e) => {
-                    self.cfg_err = Some(ConfigError { file: self.dir.join(config::MAIN_FILE), message: e });
+                    self.cfg_err = Some(ConfigError {
+                        file: self.dir.join(config::MAIN_FILE),
+                        message: e,
+                    });
                 }
             }
         }
@@ -332,7 +383,12 @@ fn on_config_files_changed(paths: Vec<PathBuf>) {
         let relevant = paths.iter().any(|p| {
             let name = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
             s.config_dirs.iter().any(|d| p.starts_with(d))
-                && [config::MAIN_FILE, config::COMMANDS_FILE, config::SYSTEM_FILE].contains(&name)
+                && [
+                    config::MAIN_FILE,
+                    config::COMMANDS_FILE,
+                    config::SYSTEM_FILE,
+                ]
+                .contains(&name)
         });
         if relevant {
             s.reload_config();
@@ -349,7 +405,12 @@ unsafe extern "C" {
 fn single_instance(state: &Path) -> Option<std::fs::File> {
     use std::os::fd::AsRawFd;
     std::fs::create_dir_all(state).ok()?;
-    let f = std::fs::OpenOptions::new().create(true).truncate(false).write(true).open(state.join("raylauncher.lock")).ok()?;
+    let f = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .write(true)
+        .open(state.join("raylauncher.lock"))
+        .ok()?;
     (unsafe { flock(f.as_raw_fd(), 2 | 4) } == 0).then_some(f) // LOCK_EX | LOCK_NB
 }
 
@@ -357,7 +418,10 @@ pub fn run() {
     let mtm = MainThreadMarker::new().expect("must run on the main thread");
     let state_dir = config::state_dir();
     let Some(_lock) = single_instance(&state_dir) else {
-        eprintln!("raylauncher is already running (lock held on {})", state_dir.join("raylauncher.lock").display());
+        eprintln!(
+            "raylauncher is already running (lock held on {})",
+            state_dir.join("raylauncher.lock").display()
+        );
         std::process::exit(1);
     };
     // Spawned commands are never waited on; let the kernel reap them.
@@ -365,7 +429,10 @@ pub fn run() {
 
     let dir = config::config_dir();
     if let Err(e) = config::ensure_files(&dir) {
-        log(format!("could not write default config to {}: {e}", dir.display()));
+        log(format!(
+            "could not write default config to {}: {e}",
+            dir.display()
+        ));
     }
     let (cfg, cfg_err) = match config::load(&dir) {
         Ok(c) => (c, None),
@@ -390,7 +457,13 @@ pub fn run() {
         Ok(r) => (Some(r), cfg_err),
         Err(e) => {
             log(&e);
-            (None, cfg_err.or(Some(ConfigError { file: dir.join(config::MAIN_FILE), message: e })))
+            (
+                None,
+                cfg_err.or(Some(ConfigError {
+                    file: dir.join(config::MAIN_FILE),
+                    message: e,
+                })),
+            )
         }
     };
 

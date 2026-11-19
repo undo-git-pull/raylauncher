@@ -39,7 +39,9 @@ fn main() {
         Some("install") => install(),
         Some("uninstall") => uninstall(),
         Some("-h" | "--help" | "help") => println!("{USAGE}"),
-        Some("-V" | "--version" | "version") => println!("raylauncher {}", env!("CARGO_PKG_VERSION")),
+        Some("-V" | "--version" | "version") => {
+            println!("raylauncher {}", env!("CARGO_PKG_VERSION"))
+        }
         Some(other) => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             exit(2);
@@ -104,7 +106,12 @@ unsafe extern "C" {
 }
 
 fn launchctl(args: &[&str]) -> bool {
-    Command::new("/bin/launchctl").args(args).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().is_ok_and(|s| s.success())
+    Command::new("/bin/launchctl")
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
 }
 
 /// For a Homebrew install (`<prefix>/Cellar/raylauncher/<version>/bin/raylauncher`), the
@@ -118,7 +125,9 @@ fn homebrew_path(exe: &std::path::Path) -> Option<PathBuf> {
 }
 
 fn install() {
-    let current = std::env::current_exe().and_then(std::fs::canonicalize).expect("cannot locate own binary");
+    let current = std::env::current_exe()
+        .and_then(std::fs::canonicalize)
+        .expect("cannot locate own binary");
     let domain = format!("gui/{}", unsafe { getuid() });
     stop_agent(&domain);
     let target = match homebrew_path(&current) {
@@ -163,7 +172,10 @@ fn install() {
         println!("installed {} and started {LABEL}", target.display());
         println!("log: {}", log.display());
     } else {
-        eprintln!("wrote {} but `launchctl bootstrap` failed; run it manually", p.display());
+        eprintln!(
+            "wrote {} but `launchctl bootstrap` failed; run it manually",
+            p.display()
+        );
         exit(1);
     }
 }
@@ -187,7 +199,10 @@ fn uninstall() {
     let domain = format!("gui/{}", unsafe { getuid() });
     stop_agent(&domain);
     let _ = std::fs::remove_file(plist_path());
-    println!("removed {LABEL}. Config in {} was left in place.", config::config_dir().display());
+    println!(
+        "removed {LABEL}. Config in {} was left in place.",
+        config::config_dir().display()
+    );
 }
 
 #[cfg(test)]
@@ -202,6 +217,9 @@ mod tests {
         std::fs::write(&opt, "").unwrap();
         let cellar = prefix.join("Cellar/raylauncher/0.1.0/bin/raylauncher");
         assert_eq!(homebrew_path(&cellar), Some(opt));
-        assert_eq!(homebrew_path(std::path::Path::new("/Users/x/.local/bin/raylauncher")), None);
+        assert_eq!(
+            homebrew_path(std::path::Path::new("/Users/x/.local/bin/raylauncher")),
+            None
+        );
     }
 }
